@@ -1,11 +1,5 @@
-//
-//  FitnessTrackerApp.swift
-//  FitnessTracker
-//
-//  Created by Veronica Gurman on 04.08.2026.
-//
-
 import SwiftUI
+import SwiftData
 
 @main
 struct FitnessTrackerApp: App {
@@ -13,5 +7,6 @@ struct FitnessTrackerApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: [WaterEntry.self, SleepEntry.self])
     }
 }
