@@ -3,76 +3,90 @@ import SwiftData
 import Charts
 
 struct WaterView: View {
-    @State private var viewModel: WaterViewModel = WaterViewModel()
+    @State private var viewModel = WaterViewModel()
     @State private var value: Double = 250
     @State private var isPresented = false
+    @State private var period = Period.day
+    @AppStorage("waterGoal") private var goal: Double = 2000
+
     @Environment(\.modelContext) private var modelContext
     @Query private var entries: [WaterEntry]
+
     let amounts: [Double] = [10, 50, 100, 250, 500, 1000]
-    @State private var period = Period.day
+
     var body: some View {
-        VStack{
+        VStack(spacing: 16) {
             Text("You drink today \(String(format: "%.0f", viewModel.drinkDuringTheDay(date: Date(), entries: entries))) ml")
+
+            Stepper("Goal: \(Int(goal)) ml", value: $goal, in: 500...5000, step: 250)
+                .padding(.horizontal)
+
             Picker("Period", selection: $period) {
                 ForEach(Period.allCases, id: \.self) { item in
                     Text(item.rawValue)
                 }
             }
             .pickerStyle(.segmented)
-            switch(period){
+            .padding(.horizontal)
+
+            switch period {
             case .day:
-                let daily = viewModel.waterForDay(date: Date(), entries: entries)
-                Chart {
-                    BarMark(
-                        x: .value("Day", daily.date, unit: .day),
-                        y: .value("amount", daily.amount)
-                    )
-                }
+                waterChart([viewModel.waterForDay(date: Date(), entries: entries)],
+                           unit: .day, showGoal: true)
             case .week:
-                Chart(viewModel.waterForWeek(date: Date(), entries: entries), id: \.date) { element in
-                    BarMark(
-                        x: .value("Day", element.date, unit: .day),
-                        y: .value("amount", element.amount)
-                    )
-                }
+                waterChart(viewModel.waterForWeek(date: Date(), entries: entries),
+                           unit: .day, showGoal: true)
             case .month:
-                Chart(viewModel.waterForMonth(date: Date(), entries: entries), id: \.date) { element in
-                    BarMark(
-                        x: .value("Day", element.date, unit: .day),
-                        y: .value("amount", element.amount)
-                    )
-                }
+                waterChart(viewModel.waterForMonth(date: Date(), entries: entries),
+                           unit: .day, showGoal: true)
             case .year:
-                Chart(viewModel.waterForYear(date: Date(), entries: entries), id: \.date) { element in
-                    BarMark(
-                        x: .value("Month", element.date, unit: .month),
-                        y: .value("amount", element.amount)
-                    )
-                }
+                waterChart(viewModel.waterForYear(date: Date(), entries: entries),
+                           unit: .month, showGoal: false)
             }
-            
+
             Button("+") {
                 isPresented = true
-            }.sheet(isPresented: $isPresented, content: {
-                VStack{
+            }
+            .buttonStyle(.bordered)
+            .sheet(isPresented: $isPresented) {
+                VStack {
                     Picker("Select ml", selection: $value) {
-                        ForEach(amounts, id: \.self){value in
-                            Text(String(format: "%.0f", value))
+                        ForEach(amounts, id: \.self) { amount in
+                            Text(String(format: "%.0f", amount))
                         }
-                    }.pickerStyle(.wheel)
+                    }
+                    .pickerStyle(.wheel)
+
                     Button("Add") {
                         viewModel.addWater(value: value, context: modelContext)
                         isPresented = false
                     }
                 }
-               
-            })
-            .buttonStyle(.bordered)
-            
+                .presentationDetents([.medium])
+            }
         }
+        .padding(.vertical)
+    }
+
+    private func waterChart(_ data: [DailyWater], unit: Calendar.Component, showGoal: Bool) -> some View {
+        Chart {
+            ForEach(data, id: \.date) { element in
+                BarMark(
+                    x: .value("Date", element.date, unit: unit),
+                    y: .value("Amount", element.amount)
+                )
+            }
+            if showGoal {
+                RuleMark(y: .value("Goal", goal))
+                    .foregroundStyle(.red)
+                    .lineStyle(StrokeStyle(lineWidth: 2, dash: [6]))
+            }
+        }
+        .padding(.horizontal)
     }
 }
 
 #Preview {
     WaterView()
+        .modelContainer(for: WaterEntry.self, inMemory: true)
 }
