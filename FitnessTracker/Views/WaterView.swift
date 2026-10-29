@@ -18,42 +18,37 @@ struct WaterView: View {
                     Text(item.rawValue)
                 }
             }
+            .pickerStyle(.segmented)
             switch(period){
             case .day:
                 let daily = viewModel.waterForDay(date: Date(), entries: entries)
-                Chart{
+                Chart {
                     BarMark(
-                        x: .value("Day", daily.date),
+                        x: .value("Day", daily.date, unit: .day),
                         y: .value("amount", daily.amount)
                     )
-                    
                 }
             case .week:
                 Chart(viewModel.waterForWeek(date: Date(), entries: entries), id: \.date) { element in
-                    
                     BarMark(
-                        x: .value("Day", element.date),
+                        x: .value("Day", element.date, unit: .day),
                         y: .value("amount", element.amount)
                     )
-                    
-                    
                 }
             case .month:
                 Chart(viewModel.waterForMonth(date: Date(), entries: entries), id: \.date) { element in
-                    
                     BarMark(
-                        x: .value("Day", element.date),
+                        x: .value("Day", element.date, unit: .day),
                         y: .value("amount", element.amount)
                     )
-                    
-                    
                 }
-            case .year: Chart(viewModel.waterForYear(date: Date(), entries: entries), id: \.date){ element in
-                BarMark(
-                    x: .value("Day", element.date),
-                    y: .value("amount", element.amount)
-                )
-            }
+            case .year:
+                Chart(viewModel.waterForYear(date: Date(), entries: entries), id: \.date) { element in
+                    BarMark(
+                        x: .value("Month", element.date, unit: .month),
+                        y: .value("amount", element.amount)
+                    )
+                }
             }
             
             Button("+") {
@@ -67,7 +62,6 @@ struct WaterView: View {
                     }.pickerStyle(.wheel)
                     Button("Add") {
                         viewModel.addWater(value: value, context: modelContext)
-                        print(entries.count)
                         isPresented = false
                     }
                 }
